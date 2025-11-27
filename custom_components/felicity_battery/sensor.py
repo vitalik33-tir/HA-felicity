@@ -103,6 +103,136 @@ SENSOR_DESCRIPTIONS: tuple[FelicitySensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:chart-bell-curve",
     ),
+    # --- Напряжения ячеек 1–16 ---
+    FelicitySensorDescription(
+        key="cell_1_v",
+        name="Cell 1 Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+    ),
+    FelicitySensorDescription(
+        key="cell_2_v",
+        name="Cell 2 Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+    ),
+    FelicitySensorDescription(
+        key="cell_3_v",
+        name="Cell 3 Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+    ),
+    FelicitySensorDescription(
+        key="cell_4_v",
+        name="Cell 4 Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+    ),
+    FelicitySensorDescription(
+        key="cell_5_v",
+        name="Cell 5 Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+    ),
+    FelicitySensorDescription(
+        key="cell_6_v",
+        name="Cell 6 Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+    ),
+    FelicitySensorDescription(
+        key="cell_7_v",
+        name="Cell 7 Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+    ),
+    FelicitySensorDescription(
+        key="cell_8_v",
+        name="Cell 8 Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+    ),
+    FelicitySensorDescription(
+        key="cell_9_v",
+        name="Cell 9 Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+    ),
+    FelicitySensorDescription(
+        key="cell_10_v",
+        name="Cell 10 Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+    ),
+    FelicitySensorDescription(
+        key="cell_11_v",
+        name="Cell 11 Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+    ),
+    FelicitySensorDescription(
+        key="cell_12_v",
+        name="Cell 12 Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+    ),
+    FelicitySensorDescription(
+        key="cell_13_v",
+        name="Cell 13 Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+    ),
+    FelicitySensorDescription(
+        key="cell_14_v",
+        name="Cell 14 Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+    ),
+    FelicitySensorDescription(
+        key="cell_15_v",
+        name="Cell 15 Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+    ),
+    FelicitySensorDescription(
+        key="cell_16_v",
+        name="Cell 16 Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+    ),
+    # --- Лимиты по фактическим данным ---
     FelicitySensorDescription(
         key="max_charge_current",
         name="Max Charge Current",
@@ -134,7 +264,6 @@ SENSOR_DESCRIPTIONS: tuple[FelicitySensorDescription, ...] = (
         name="Battery Warning",
         icon="mdi:alert-circle",
     ),
-
     # --- Инфо / прошивки / тип ---
     FelicitySensorDescription(
         key="fw_version",
@@ -161,7 +290,6 @@ SENSOR_DESCRIPTIONS: tuple[FelicitySensorDescription, ...] = (
         name="Battery SubType",
         icon="mdi:identifier",
     ),
-
     # --- Настройки / пороги ---
     FelicitySensorDescription(
         key="ttl_pack",
@@ -325,6 +453,18 @@ class FelicitySensor(CoordinatorEntity, SensorEntity):
                 return None
             return round((max_raw - min_raw) / 1000, 3)
 
+        # --- Cell voltages 1–16 ---
+        if key.startswith("cell_") and key.endswith("_v"):
+            try:
+                idx = int(key.split("_")[1]) - 1  # 0..15
+            except (ValueError, IndexError):
+                return None
+            raw = get_nested(("BatcelList", 0, idx))
+            if raw is None or raw == 65535:
+                return None
+            return round(raw / 1000, 3)
+
+        # --- Limits from runtime data ---
         if key == "max_charge_current":
             raw = get_nested(("LVolCur", 1, 0))
             return round(raw / 10, 1) if raw is not None else None
