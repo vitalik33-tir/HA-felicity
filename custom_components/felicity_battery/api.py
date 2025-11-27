@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,12 +24,13 @@ class FelicityClient:
         try:
             reader, writer = await asyncio.open_connection(self._host, self._port)
 
-            # Same command as used via printf | nc
+            # Та же команда, что мы посылали через printf | nc
             writer.write(b"wifilocalMonitor:get dev real infor")
             await writer.drain()
 
             try:
-                data = await asyncio.wait_for(reader.read(4096), timeout=3.0)
+                # 4 кБ за глаза, но можно и больше
+                data = await asyncio.wait_for(reader.read(8192), timeout=3.0)
             finally:
                 writer.close()
                 try:
@@ -47,9 +49,28 @@ class FelicityClient:
         text = data.decode("ascii", errors="ignore").strip()
         _LOGGER.debug("Raw Felicity response: %r", text)
 
+        # ---- ФИКС КРИВОГО JSON ----
+        # Некоторые прошивки отдают что-то вроде:
+        # ..."Estate":960,"Bfault":0[[140,130],[256,258]],...
+        # т.е. массив температур без имени поля BTemp.
+        # Попробуем аккуратно вставить "BTemp":
+        if '"BTemp":' not in text and '"Bfault":' in text:
+            fixed, n = re.subn(
+                r'"Bfault":\s*([-0-9]+)\s*\[\[',
+                r'"Bfault":\1,"BTemp":[[',
+                text,
+            )
+            if n:
+                _LOGGER.debug(
+                    "Patched Felicity JSON: inserted BTemp key (%s replacement(s))", n
+                )
+                text = fixed
+        # ---- КОНЕЦ ФИКСА ----
+
         try:
             parsed = json.loads(text)
         except Exception as err:
-            raise FelicityApiError(f"Invalid JSON from battery: {text!r}") from err
+            # сюда попадём, если даже после фикса JSON всё ещё кривой
+            raise FelicityApiError(f"Invalid JSON from battery: {text}") from err
 
         return parsed
