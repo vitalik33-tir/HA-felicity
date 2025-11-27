@@ -24,7 +24,7 @@ class FelicityClient:
         try:
             reader, writer = await asyncio.open_connection(self._host, self._port)
 
-            
+            # Та же команда, что мы шлём через printf | nc
             writer.write(b"wifilocalMonitor:get dev real infor")
             await writer.drain()
 
@@ -48,27 +48,33 @@ class FelicityClient:
         text = data.decode("ascii", errors="ignore").strip()
         _LOGGER.debug("Raw Felicity response (before patch): %r", text)
 
-        if text.startswith("{'") and '"' not in text:
+        # 1) Python-словарь с одинарными кавычками -> нормальный JSON
+        #    {'CommVer':1,'wifiSN':'...'} -> {"CommVer":1,"wifiSN":"..."}
+        if text.startswith("{'"):
             patched = text.replace("'", '"')
             _LOGGER.debug("Patched single quotes -> double quotes")
             text = patched
+
+        # 2) После Bfault иногда сразу идёт массив температур без имени поля:
+        #    ..."Bfault":0,[[140,130],[256,258]],...
+        #    Чиним на:
+        #    ..."Bfault":0,"BTemp":[[140,130],[256,258]],...
         if '"BTemp":' not in text and '"Bfault":' in text:
-            patched = text.replace(
-                '"Bfault":0[[', '"Bfault":0,"BTemp":[['
-            )
             patched, n = re.subn(
-                r'"Bfault"\s*:\s*([-0-9]+)\s*\[\[',
+                r'"Bfault"\s*:\s*([-0-9]+)\s*,\s*\[\[',
                 r'"Bfault":\1,"BTemp":[[',
-                patched,
+                text,
             )
-            if patched != text:
+            if n:
                 _LOGGER.debug("Patched BTemp after Bfault (replacements=%s)", n)
                 text = patched
 
         _LOGGER.debug("Felicity response (after patch): %r", text)
+
         try:
             parsed = json.loads(text)
         except Exception as err:
+            # Если всё равно не JSON – покажем, что конкретно пришло
             raise FelicityApiError(f"Invalid JSON from battery: {text}") from err
 
         return parsed
