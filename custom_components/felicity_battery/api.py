@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import re
 from typing import Any, Dict
@@ -20,11 +21,44 @@ class FelicityClient:
         self._port = port
 
     async def async_get_data(self) -> dict:
-        """Send command and get parsed data dict."""
-        raw = await self._async_read_raw()
-        return self._parse_payload(raw)
+        """Send commands and combine all data into one dict.
 
-    async def _async_read_raw(self) -> str:
+        - wifilocalMonitor:get dev real infor   -> runtime telemetry
+        - wifilocalMonitor:get dev basice infor -> versions / type
+        - wifilocalMonitor:get dev set infor    -> config / limits (best-effort)
+        """
+        # 1. Runtime data (обязательное)
+        real_raw = await self._async_read_raw(b"wifilocalMonitor:get dev real infor")
+        real = self._parse_real_payload(real_raw)
+        data: Dict[str, Any] = dict(real)
+
+        # 2. Basic info (версии, типы, серийники)
+        try:
+            basic_raw = await self._async_read_raw(
+                b"wifilocalMonitor:get dev basice infor"
+            )
+            basic_text = basic_raw.replace("'", '"').strip()
+            basic = json.loads(basic_text)
+            data["_basic"] = basic
+        except Exception as err:
+            _LOGGER.debug("Failed to read basic info: %s", err)
+
+        # 3. Settings / limits (может быть в нескольких пакетах)
+        try:
+            set_raw = await self._async_read_raw(
+                b"wifilocalMonitor:get dev set infor"
+            )
+            set_text = set_raw.replace("'", '"').strip()
+            first_json = self._extract_first_json_object(set_text)
+            if first_json:
+                settings = json.loads(first_json)
+                data["_settings"] = settings
+        except Exception as err:
+            _LOGGER.debug("Failed to read settings info: %s", err)
+
+        return data
+
+    async def _async_read_raw(self, command: bytes) -> str:
         """Open TCP, send command, read response as text."""
         try:
             reader, writer = await asyncio.open_connection(self._host, self._port)
@@ -34,12 +68,11 @@ class FelicityClient:
             ) from err
 
         try:
-            writer.write(b"wifilocalMonitor:get dev real infor")
+            writer.write(command)
             await writer.drain()
 
             data = b""
-            # читаем несколько кусков, чтобы не отрезать хвост
-            for _ in range(10):
+            for _ in range(20):
                 try:
                     chunk = await asyncio.wait_for(reader.read(1024), timeout=0.5)
                 except asyncio.TimeoutError:
@@ -47,9 +80,14 @@ class FelicityClient:
                 if not chunk:
                     break
                 data += chunk
-                # если увидели закрывающую фигурную скобку – скорее всего, конец объекта
                 if b"}" in chunk:
-                    # чуть грубовато, но для нашего формата достаточно
+                    # небольшой добор, если сразу пришёл второй пакет
+                    try:
+                        more = await asyncio.wait_for(reader.read(1024), timeout=0.2)
+                        if more:
+                            data += more
+                    except asyncio.TimeoutError:
+                        pass
                     break
 
         except Exception as err:
@@ -67,18 +105,16 @@ class FelicityClient:
             raise FelicityApiError("No data received from battery")
 
         text = data.decode("ascii", errors="ignore").strip()
-        _LOGGER.debug("Raw Felicity response: %r", text)
+        _LOGGER.debug("Raw Felicity response for %r: %r", command, text)
         return text
 
     # --------------------------------------------------------------------- #
-    #                    ПАРСЕР НАШЕЙ СТРОКИ ОТ АКБ                         #
+    #                    ПАРСЕР 'dev real infor'                             #
     # --------------------------------------------------------------------- #
 
-    def _parse_payload(self, text: str) -> Dict[str, Any]:
-        """Parse Felicity custom JSON-like payload into a dict we use."""
-        # Приводим все одинарные кавычки к двойным, чтобы regex был проще
+    def _parse_real_payload(self, text: str) -> Dict[str, Any]:
+        """Parse Felicity 'dev real infor' payload into dict we use."""
         norm = text.replace("'", '"')
-        # На всякий случай уберём мусор после последней фигурной скобки
         last_brace = norm.rfind("}")
         if last_brace != -1:
             norm = norm[: last_brace + 1]
@@ -150,10 +186,8 @@ class FelicityClient:
             c2 = int(m.group(4))
             result["LVolCur"] = [[v1, v2], [c1, c2]]
 
-        # BTemp – пытаемся сначала найти BTemp,
-        # если его нет – берём первую пару из Templist
+        # BTemp
         btemp = None
-
         m = re.search(
             r'"BTemp"\s*:\s*\[\s*\[\s*([-0-9]+)\s*,\s*([-0-9]+)\s*\]'
             r'(?:\s*,\s*\[\s*([-0-9]+)\s*,\s*([-0-9]+)\s*\])?\s*\]',
@@ -169,7 +203,6 @@ class FelicityClient:
             else:
                 btemp = [[t1, t2]]
         else:
-            # резервный вариант – Templist:[[140,130],[0,2],...]
             m = re.search(
                 r'"Templist"\s*:\s*\[\s*\[\s*([-0-9]+)\s*,\s*([-0-9]+)\s*\]',
                 norm,
@@ -178,29 +211,43 @@ class FelicityClient:
                 t1 = int(m.group(1))
                 t2 = int(m.group(2))
                 btemp = [[t1, t2]]
-
         if btemp is not None:
             result["BTemp"] = btemp
 
-        # BatcelList – не обязательно, но если есть, забираем весь первый массив
-        m = re.search(
-            r'"BatcelList"\s*:\s*\[\s*\[([0-9,\s-]+)\]',
-            norm,
-        )
+        # BatcelList – список напряжений ячеек
+        m = re.search(r'"BatcelList"\s*:\s*\[\s*\[([0-9,\s-]+)\]', norm)
         if m:
             cells_str = m.group(1)
             try:
-                cells = [int(x) for x in cells_str.split(",")]
+                cells = [int(x) for x in cells_str.split(",") if x.strip() != ""]
                 result["BatcelList"] = [cells]
             except Exception:
                 pass
 
-        _LOGGER.debug("Parsed Felicity data dict: %s", result)
+        _LOGGER.debug("Parsed Felicity real data dict: %s", result)
 
-        # Минимальная валидация: без SOC и Batt смысла нет
         if "Batsoc" not in result and "Batt" not in result:
             raise FelicityApiError(
                 f"Unable to parse essential fields from payload: {text}"
             )
 
         return result
+
+    @staticmethod
+    def _extract_first_json_object(text: str) -> str | None:
+        """Return substring of first JSON object in text (best-effort)."""
+        start = text.find("{")
+        if start == -1:
+            return None
+
+        depth = 0
+        for i, ch in enumerate(text[start:], start=start):
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start : i + 1]
+
+        # если не нашли закрытие – возвращаем всё от первой '{'
+        return text[start:] or None

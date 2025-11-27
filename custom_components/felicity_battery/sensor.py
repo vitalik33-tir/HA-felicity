@@ -133,6 +133,17 @@ SENSOR_DESCRIPTIONS: tuple[FelicitySensorDescription, ...] = (
         name="Battery Warning",
         icon="mdi:alert-circle",
     ),
+    # Логические сенсоры с атрибутами базовой/настройной инфы
+    FelicitySensorDescription(
+        key="basic_info",
+        name="Battery Basic Info",
+        icon="mdi:information-outline",
+    ),
+    FelicitySensorDescription(
+        key="settings",
+        name="Battery Settings",
+        icon="mdi:tune-variant",
+    ),
 )
 
 
@@ -271,5 +282,33 @@ class FelicitySensor(CoordinatorEntity, SensorEntity):
             if v is None:
                 return None
             return int(v)
+
+        if key == "basic_info":
+            basic = data.get("_basic")
+            return "online" if basic else "unavailable"
+
+        if key == "settings":
+            settings = data.get("_settings")
+            return "loaded" if settings else "unavailable"
+
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return extra attributes for some sensors."""
+        data: dict = self.coordinator.data or {}
+        key = self.entity_description.key
+
+        if key == "basic_info":
+            basic = data.get("_basic")
+            if isinstance(basic, dict):
+                return basic
+            return None
+
+        if key == "settings":
+            settings = data.get("_settings")
+            if isinstance(settings, dict):
+                return settings
+            return None
 
         return None
