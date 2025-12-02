@@ -1,4 +1,5 @@
 from __future__ import annotations
+# -*- coding: utf-8 -*-
 
 import asyncio
 import json
@@ -69,8 +70,8 @@ class FelicityClient:
                         chunk = "".join(buf)
                         try:
                             part = json.loads(chunk)
-                        except Exception as json_err:
-                            _LOGGER.debug("Invalid JSON chunk in settings: %s", json_err)
+                        except Exception as err:
+                            _LOGGER.debug("Invalid JSON chunk in settings: %s", err)
                         else:
                             merged.update(part)
                         buf = []
@@ -83,7 +84,10 @@ class FelicityClient:
                     merged,
                 )
             else:
-                _LOGGER.debug("No valid JSON found in settings payload: %r", set_text)
+                _LOGGER.debug(
+                    "No valid JSON found in settings payload: %r",
+                    set_text,
+                )
 
         return data
 
