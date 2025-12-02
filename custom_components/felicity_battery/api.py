@@ -25,7 +25,7 @@ class FelicityClient:
 
         - wifilocalMonitor:get dev real infor   -> runtime telemetry
         - wifilocalMonitor:get dev basice infor -> versions / type
-        - wifilocalMonitor:get dev set infor    -> config / limits (multi-json)
+        - wifilocalMonitor:get dev set infor    -> config / limits
         """
         # 1. Runtime data (обязательное)
         real_raw = await self._async_read_raw(b"wifilocalMonitor:get dev real infor")
@@ -40,71 +40,42 @@ class FelicityClient:
             basic_text = basic_raw.replace("'", '"').strip()
             basic = json.loads(basic_text)
             data["_basic"] = basic
+            _LOGGER.debug("Felicity basic info: %s", basic)
         except Exception as err:
             _LOGGER.debug("Failed to read basic info: %s", err)
 
-        # 3. Settings / limits (может быть в нескольких JSON-блоках подряд)
+        # 3. Settings / limits
+        #
+        # ВАЖНО: здесь максимально простой вариант,
+        # который у тебя уже работал раньше:
+        # вытаскиваем ПЕРВЫЙ валидный JSON-объект из строки
+        # (первый пакет с index=1, в нём есть все нужные нам поля).
         try:
             set_raw = await self._async_read_raw(
                 b"wifilocalMonitor:get dev set infor"
             )
-        except Exception as err:
-            _LOGGER.debug("Failed to read settings info (read error): %s", err)
-        else:
             set_text = set_raw.replace("'", '"').strip()
-            merged: Dict[str, Any] = {}
-
-            # Основная попытка: аккуратно выделяем все верхнеуровневые JSON-объекты
-            depth = 0
-            buf: list[str] = []
-            for ch in set_text:
-                if ch == "{":
-                    if depth == 0:
-                        buf = []
-                    depth += 1
-                if depth > 0:
-                    buf.append(ch)
-                if ch == "}":
-                    depth -= 1
-                    if depth == 0 and buf:
-                        chunk = "".join(buf)
-                        try:
-                            part = json.loads(chunk)
-                        except Exception as json_err:
-                            _LOGGER.debug(
-                                "Invalid JSON chunk in settings: %s", json_err
-                            )
-                        else:
-                            if isinstance(part, dict):
-                                merged.update(part)
-                        buf = []
-
-            # Fallback: если почему-то ничего не нашли, используем старый поиск первого объекта
-            if not merged:
-                first_json = self._extract_first_json_object(set_text)
-                if first_json:
-                    try:
-                        part = json.loads(first_json)
-                    except Exception as json_err:
-                        _LOGGER.debug(
-                            "Failed to parse settings with fallback JSON: %s", json_err
-                        )
-                    else:
-                        if isinstance(part, dict):
-                            merged.update(part)
-
-            if merged:
-                data["_settings"] = merged
-                _LOGGER.debug(
-                    "Merged Felicity settings (%d keys): %s",
-                    len(merged),
-                    merged,
-                )
+            first_json = self._extract_first_json_object(set_text)
+            if first_json:
+                settings = json.loads(first_json)
+                if isinstance(settings, dict):
+                    data["_settings"] = settings
+                    _LOGGER.debug(
+                        "Felicity settings loaded (%d keys): %s",
+                        len(settings),
+                        settings,
+                    )
+                else:
+                    _LOGGER.debug(
+                        "Settings JSON is not a dict: %r", type(settings)
+                    )
             else:
                 _LOGGER.debug(
-                    "No valid JSON found in settings payload: %r",
+                    "Unable to extract first JSON object from settings payload: %r",
                     set_text,
                 )
+        except Exception as err:
+            _LOGGER.debug("Failed to read settings info: %s", err)
 
         return data
 
@@ -130,6 +101,7 @@ class FelicityClient:
                 if not chunk:
                     break
                 data += chunk
+                # как только увидели хотя бы одну '}', дочитываем чуть-чуть и выходим
                 if b"}" in chunk:
                     try:
                         more = await asyncio.wait_for(reader.read(1024), timeout=0.2)
@@ -300,4 +272,5 @@ class FelicityClient:
                 if depth == 0:
                     return text[start : i + 1]
 
+        # если вдруг так и не вышли на depth==0 — вернём всё, что есть
         return text[start:] or None
