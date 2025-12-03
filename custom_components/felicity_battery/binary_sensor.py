@@ -110,6 +110,7 @@ class FelicityBinarySensor(CoordinatorEntity, BinarySensorEntity):
             "model": "FLA48200",
             "sw_version": sw_version,
             "serial_number": serial,
+            "configuration_url": f"http://{self.coordinator.client._host}",
         }
 
     @property
