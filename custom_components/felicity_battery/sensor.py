@@ -520,7 +520,7 @@ class FelicitySensor(CoordinatorEntity, SensorEntity):
 
         # идентификатор оставляем «чистым», а в отображаемую строку подмешиваем IP
         if host:
-            serial_display = f"{host} (IP {host})"
+            serial_display = f"{serial} (IP {host})"
         else:
             serial_display = serial
 
