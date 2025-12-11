@@ -473,6 +473,161 @@ SENSOR_DESCRIPTIONS: tuple[FelicitySensorDescription, ...] = (
         suggested_display_precision=1,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
+
+    # --- Доп. диагностические сенсоры (Templist / BattList / BtemList / EMS/BMS / BLVolCu / LVolCur row0) ---
+    # Templist[0][0..1] / 10
+    FelicitySensorDescription(
+        key="templist_1",
+        name="Temp List 1",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:thermometer",
+        suggested_display_precision=1,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    FelicitySensorDescription(
+        key="templist_2",
+        name="Temp List 2",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:thermometer",
+        suggested_display_precision=1,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+
+    # BattList / BatsocList
+    FelicitySensorDescription(
+        key="battlist_voltage",
+        name="Pack List Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:current-dc",
+        suggested_display_precision=2,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    FelicitySensorDescription(
+        key="battlist_current",
+        name="Pack List Current",
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:current-dc",
+        suggested_display_precision=1,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    FelicitySensorDescription(
+        key="battlist_soc",
+        name="Pack List SOC",
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=SensorDeviceClass.BATTERY,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+        suggested_display_precision=1,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+
+    # EMSpara / BMSpara
+    FelicitySensorDescription(
+        key="ems_para",
+        name="EMS Parameter Word",
+        icon="mdi:database",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    FelicitySensorDescription(
+        key="bms_para",
+        name="BMS Parameter Word",
+        icon="mdi:database",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+
+    # BLVolCu[0][0..1] / 10
+    FelicitySensorDescription(
+        key="blvolcu_max",
+        name="BLVolCu Max Current",
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:current-ac",
+        suggested_display_precision=1,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    FelicitySensorDescription(
+        key="blvolcu_min",
+        name="BLVolCu Min Current",
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:current-ac",
+        suggested_display_precision=1,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+
+    # LVolCur[0][0..1] / 10 (в JS это LVolCurMax / LVolCurMin, отдельные от наших runtime-ограничений)
+    FelicitySensorDescription(
+        key="lvolcur_max",
+        name="LVolCur Max (row0)",
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:current-ac",
+        suggested_display_precision=1,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    FelicitySensorDescription(
+        key="lvolcur_min",
+        name="LVolCur Min (row0)",
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:current-ac",
+        suggested_display_precision=1,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+
+    # BtemList[0][0..3] / 10
+    FelicitySensorDescription(
+        key="bms_temp_1",
+        name="BMS Temp 1",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:thermometer",
+        suggested_display_precision=1,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    FelicitySensorDescription(
+        key="bms_temp_2",
+        name="BMS Temp 2",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MЕASUREMENT,
+        icon="mdi:thermometer",
+        suggested_display_precision=1,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    FelicitySensorDescription(
+        key="bms_temp_3",
+        name="BMS Temp 3",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MЕASUREMENT,
+        icon="mdi:thermometer",
+        suggested_display_precision=1,
+        entity_category=EntityCategory.DИAGNOSTIC,
+    ),
+    FelicitySensorDescription(
+        key="bms_temp_4",
+        name="BMS Temp 4",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TЕМPERATURE,
+        state_class=SensorStateClass.МЕASUREMENT,
+        icon="mdi:thermometer",
+        suggested_display_precision=1,
+        entity_category=EntityCategory.DИAGNOSTIC,
+    ),
 )
 
 
@@ -523,8 +678,6 @@ class FelicitySensor(CoordinatorEntity, SensorEntity):
             "sw_version": sw_version,
             "serial_number": serial,
         }
-
-
 
     @property
     def native_value(self) -> Any:
@@ -737,6 +890,78 @@ class FelicitySensor(CoordinatorEntity, SensorEntity):
             raw = settings.get("bDCHi2")
             return round(raw / 10, 1) if isinstance(raw, (int, float)) else None
 
+        # --- Доп. диагностические сенсоры на основе "dev real infor" ---
+
+        # Templist[0][0..1] / 10
+        if key == "templist_1":
+            raw = get_nested(("Templist", 0, 0))
+            return round(raw / 10.0, 1) if raw is not None else None
+
+        if key == "templist_2":
+            raw = get_nested(("Templist", 0, 1))
+            return round(raw / 10.0, 1) if raw is not None else None
+
+        # BattList / BatsocList
+        if key == "battlist_voltage":
+            raw = get_nested(("BattList", 0, 0))
+            return round(raw / 1000.0, 2) if raw is not None else None
+
+        if key == "battlist_current":
+            raw = get_nested(("BattList", 1, 0))
+            return round(raw / 10.0, 1) if raw is not None else None
+
+        if key == "battlist_soc":
+            raw = get_nested(("BatsocList", 0, 0))
+            return round(raw / 100.0, 1) if raw is not None else None
+
+        # EMSpara / BMSpara
+        if key == "ems_para":
+            raw = get_nested(("EMSpara", 0, 0))
+            if isinstance(raw, (int, float)):
+                return int(raw)
+            return raw
+
+        if key == "bms_para":
+            raw = get_nested(("BMSpara", 0, 0))
+            if isinstance(raw, (int, float)):
+                return int(raw)
+            return raw
+
+        # BLVolCu[0][0..1] / 10
+        if key == "blvolcu_max":
+            raw = get_nested(("BLVolCu", 0, 0))
+            return round(raw / 10.0, 1) if raw is not None else None
+
+        if key == "blvolcu_min":
+            raw = get_nested(("BLVolCu", 0, 1))
+            return round(raw / 10.0, 1) if raw is not None else None
+
+        # LVolCur[0][0..1] / 10 (JS: LVolCurMax / LVolCurMin)
+        if key == "lvolcur_max":
+            raw = get_nested(("LVolCur", 0, 0))
+            return round(raw / 10.0, 1) if raw is not None else None
+
+        if key == "lvolcur_min":
+            raw = get_nested(("LVolCur", 0, 1))
+            return round(raw / 10.0, 1) if raw is not None else None
+
+        # BtemList[0][0..3] / 10
+        if key == "bms_temp_1":
+            raw = get_nested(("BtemList", 0, 0))
+            return round(raw / 10.0, 1) if raw is not None else None
+
+        if key == "bms_temp_2":
+            raw = get_nested(("BtemList", 0, 1))
+            return round(raw / 10.0, 1) if raw is not None else None
+
+        if key == "bms_temp_3":
+            raw = get_nested(("BtemList", 0, 2))
+            return round(raw / 10.0, 1) if raw is not None else None
+
+        if key == "bms_temp_4":
+            raw = get_nested(("BtemList", 0, 3))
+            return round(raw / 10.0, 1) if raw is not None else None
+
         return None
 
     @property
@@ -795,6 +1020,58 @@ class FelicitySensor(CoordinatorEntity, SensorEntity):
             settings = data.get("_settings")
             if isinstance(settings, dict):
                 return settings
+            return None
+
+        # Сырые массивы для новых диагностических сенсоров
+
+        # Для templist_1 / templist_2 отдадим весь Templist
+        if key in {"templist_1", "templist_2"}:
+            templist = data.get("Templist")
+            if isinstance(templist, list):
+                return {"Templist": templist}
+            return None
+
+        # Для battlist_* отдадим BattList и BatsocList
+        if key in {"battlist_voltage", "battlist_current", "battlist_soc"}:
+            attrs: dict[str, Any] = {}
+            batt_list = data.get("BattList")
+            if batt_list is not None:
+                attrs["BattList"] = batt_list
+            batsoc_list = data.get("BatsocList")
+            if batsoc_list is not None:
+                attrs["BatsocList"] = batsoc_list
+            return attrs or None
+
+        # Для bms_temp_* отдаём BtemList (все датчики BMS)
+        if key in {"bms_temp_1", "bms_temp_2", "bms_temp_3", "bms_temp_4"}:
+            btem = data.get("BtemList")
+            if isinstance(btem, list):
+                return {"BtemList": btem}
+            return None
+
+        # Для ems_para / bms_para отдадим оба массива EMSpara/BMSpara
+        if key in {"ems_para", "bms_para"}:
+            attrs: dict[str, Any] = {}
+            ems = data.get("EMSpara")
+            if ems is not None:
+                attrs["EMSpara"] = ems
+            bms = data.get("BMSpara")
+            if bms is not None:
+                attrs["BMSpara"] = bms
+            return attrs or None
+
+        # Для blvolcu_* отдадим весь BLVolCu
+        if key in {"blvolcu_max", "blvolcu_min"}:
+            bl = data.get("BLVolCu")
+            if isinstance(bl, list):
+                return {"BLVolCu": bl}
+            return None
+
+        # Для lvolcur_* отдадим весь LVolCur
+        if key in {"lvolcur_max", "lvolcur_min"}:
+            lc = data.get("LVolCur")
+            if isinstance(lc, list):
+                return {"LVolCur": lc}
             return None
 
         return None
