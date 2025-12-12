@@ -12,6 +12,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
+    CONF_HOST,
     PERCENTAGE,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
@@ -514,6 +515,9 @@ class FelicitySensor(CoordinatorEntity, SensorEntity):
         serial = data.get("DevSN") or data.get("wifiSN") or self._entry.entry_id
         basic = data.get("_basic") or {}
         sw_version = basic.get("version")
+        host = self._entry.data.get(CONF_HOST)
+        serial_display = f"{serial} ({host})" if host else serial
+
 
         return {
             "identifiers": {(DOMAIN, serial)},
@@ -521,7 +525,7 @@ class FelicitySensor(CoordinatorEntity, SensorEntity):
             "manufacturer": "Felicity",
             "model": "FLA48200",
             "sw_version": sw_version,
-            "serial_number": serial,
+            "serial_number": serial_display,
         }
 
 
